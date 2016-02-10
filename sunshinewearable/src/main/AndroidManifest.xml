@@ -16,16 +16,6 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault" >
-        <activity
-            android:name=".SunshineWearFaceCfgActivity"
-            android:label="@string/digital_config_name" >
-            <intent-filter>
-                <action android:name="com.example.android.wearable.watchface.CONFIG_DIGITAL" />
-
-                <category android:name="com.google.android.wearable.watchface.category.WEARABLE_CONFIGURATION" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
         <service
             android:name=".DigitalWatchFaceService"
             android:label="@string/digital_name"
