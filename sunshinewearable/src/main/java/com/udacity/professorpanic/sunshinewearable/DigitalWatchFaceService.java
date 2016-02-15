@@ -33,6 +33,7 @@ import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
@@ -62,7 +63,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class DigitalWatchFaceService extends CanvasWatchFaceService {
     private static final String TAG = "DigitalWatchFaceService";
-
+    private static boolean mIsRound;
     private static final Typeface BOLD_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
     private static final Typeface NORMAL_TYPEFACE =
@@ -153,6 +154,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         Paint mColonPaint;
         float mColonWidth;
         boolean mMute;
+        Paint mDividerPaint;
 
         Calendar mCalendar;
         Date mDate;
@@ -188,7 +190,8 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             super.onCreate(holder);
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(DigitalWatchFaceService.this)
-                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
+                    .setHotwordIndicatorGravity(Gravity.CENTER | Gravity.BOTTOM)
+                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_SHORT)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
                     .setShowSystemUiTime(false)
                     .build());
@@ -206,6 +209,13 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             mSecondPaint = createTextPaint(mInteractiveSecondDigitsColor);
             mAmPmPaint = createTextPaint(resources.getColor(R.color.digital_am_pm));
             mColonPaint = createTextPaint(resources.getColor(R.color.digital_colons));
+
+            mDividerPaint = new Paint();
+            mDividerPaint.setARGB(255, 255, 255, 255);
+            mDividerPaint.setStrokeWidth(2.0f);
+            mDividerPaint.setAntiAlias(true);
+            mDividerPaint.setStrokeCap(Paint.Cap.ROUND);
+
 
             mCalendar = Calendar.getInstance();
             mDate = new Date();
@@ -260,10 +270,10 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         }
 
         private void initFormats() {
-            mDayOfWeekFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
+            mDayOfWeekFormat = new SimpleDateFormat("EEE, MMM d yyyy", Locale.getDefault());
             mDayOfWeekFormat.setCalendar(mCalendar);
-            mDateFormat = DateFormat.getDateFormat(DigitalWatchFaceService.this);
-            mDateFormat.setCalendar(mCalendar);
+//            mDateFormat = DateFormat.getDateFormat(DigitalWatchFaceService.this);
+//            mDateFormat.setCalendar(mCalendar);
         }
 
         private void registerReceiver() {
@@ -290,7 +300,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 Log.d(TAG, "onApplyWindowInsets: " + (insets.isRound() ? "round" : "square"));
             }
             super.onApplyWindowInsets(insets);
-
+            mIsRound= insets.isRound();
             // Load resources that have alternate values for round watches.
             Resources resources = DigitalWatchFaceService.this.getResources();
             boolean isRound = insets.isRound();
@@ -458,13 +468,23 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             // Draw the background.
             canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
 
+            if (!isInAmbientMode())
+            {
+                if (mIsRound)
+                canvas.drawLine(bounds.exactCenterX()-20, bounds.exactCenterY()+5, bounds.exactCenterX()+20, bounds.exactCenterY()+5, mDividerPaint);
+                else
+                {
+                    canvas.drawLine(bounds.exactCenterX()-20, bounds.exactCenterY()+45, bounds.exactCenterX()+20, bounds.exactCenterY()+45, mDividerPaint);
+                }
+            }
+
             int width = bounds.width();
 
             int height = bounds.height();
             float centerX;
 
 
-                 centerX = bounds.exactCenterX() - (width / 2.4f);
+                 centerX = bounds.exactCenterX()-99;
 
             float centerY = height / 2f;
 
@@ -512,16 +532,16 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
 
             // Only render the day of week and date if there is no peek card, so they do not bleed
             // into each other in ambient mode.
-            if (getPeekCardPosition().isEmpty()) {
-                // Day of week
+//            if (getPeekCardPosition().isEmpty()) {
+//                // Day of week
                 canvas.drawText(
                         mDayOfWeekFormat.format(mDate),
                         mXOffset, mYOffset + mLineHeight, mDatePaint);
                 // Date
-                canvas.drawText(
-                        mDateFormat.format(mDate),
-                        mXOffset, mYOffset + mLineHeight * 2, mDatePaint);
-            }
+//                canvas.drawText(
+//                        mDateFormat.format(mDate),
+//                        mXOffset, mYOffset + mLineHeight * 2, mDatePaint);
+            //}
         }
 
         /**
