@@ -224,8 +224,8 @@
 
     <!-- Used to form a severe weather alert that reads "Heads up: <weather> in <location>!" -->
     <string name="gcm_weather_alert">Heads up: %1$s in %2$s!</string>
-    // TODO: Get the SenderID from the Developer Console
-    <string name="gcm_defaultSenderId" translatable="false"></string>
+    <!--<string name="gcm_defaultSenderId" translatable="false">290783652177</string>-->
+
 
     <string name="analog_config_text">This is the config activity for the Analog and Card Bounds watch faces</string>
     <string name="digital_config_text">Digital watch face configuration</string>

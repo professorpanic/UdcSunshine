@@ -36,6 +36,12 @@ import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -49,6 +55,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
@@ -62,7 +69,13 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
     private static final long DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
     private static final int WEATHER_NOTIFICATION_ID = 3004;
+    private static final String WEATHER_INFO_PATH = "/weather-info";
+    private static final String KEY_WEATHER_UUID = "uuid";
+    private static final String KEY_WEATHER_HIGH = "high";
+    private static final String KEY_WEATHER_LOW = "low";
+    private static final String KEY_WEATHER_ID = "weatherId";
 
+    private GoogleApiClient mGoogleApiClient;
 
     private static final String[] NOTIFY_WEATHER_PROJECTION = new String[] {
             WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
@@ -89,6 +102,40 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(context)
+                    .addApi(Wearable.API)
+                    .build();
+        }
+    }
+
+    public void updateWeatherWearable(double inboundHighTemp, double inboundLowTemp, int weatherId)
+    {
+        if (mGoogleApiClient == null) {
+            return;
+        }
+        mGoogleApiClient.connect();
+
+        PutDataMapRequest dataMapRequest = PutDataMapRequest.create(WEATHER_INFO_PATH);
+        dataMapRequest.getDataMap().putString(KEY_WEATHER_UUID, UUID.randomUUID().toString());
+        dataMapRequest.getDataMap().putString(KEY_WEATHER_HIGH, Utility.formatTemperature(getContext(), inboundHighTemp));
+        dataMapRequest.getDataMap().putString(KEY_WEATHER_LOW, Utility.formatTemperature(getContext(), inboundLowTemp));
+        dataMapRequest.getDataMap().putInt(KEY_WEATHER_ID, weatherId);
+        dataMapRequest.setUrgent();
+        PutDataRequest request = dataMapRequest.asPutDataRequest();
+
+
+        Wearable.DataApi.putDataItem(mGoogleApiClient, request)
+                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                    @Override
+                    public void onResult(DataApi.DataItemResult dataItemResult) {
+                        if (!dataItemResult.getStatus().isSuccess()) {
+                            Log.e(LOG_TAG, "Weather data not going to wearable. Package problem maybe?");
+                        } else {
+                            Log.e(LOG_TAG, "Weather data sent to wearable!");
+                        }
+                    }
+                });
     }
 
     @Override
@@ -328,8 +375,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP, low);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_SHORT_DESC, description);
                 weatherValues.put(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID, weatherId);
-
+                Log.e(LOG_TAG, "HELLOIMNEARUPDATEWEATHERWEARABLE");
                 cVVector.add(weatherValues);
+
+
+                    updateWeatherWearable(high, low, weatherId);
+
             }
 
             int inserted = 0;
@@ -529,7 +580,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         locationCursor.close();
-        // Wait, that worked?  Yes!
+
         return locationId;
     }
 
